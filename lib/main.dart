@@ -5,6 +5,8 @@ import 'package:intl/date_symbol_data_local.dart'; // ★ 追加: ロケール�
 import 'screens/input_screen.dart';
 import 'screens/confirm_screen.dart';
 import 'screens/complete_screen.dart';
+import 'package:google_fonts/google_fonts.dart'; // <--- google_fontsをインポート
+
 
 // main関数をasyncに変更し、initializeDateFormattingを呼び出す
 Future<void> main() async { // ★ async に変更
@@ -27,6 +29,11 @@ class MyApp extends StatelessWidget {
         const Locale('ja', 'JP'),
       ],
       locale: const Locale('ja', 'JP'),
+      theme: ThemeData(
+        textTheme: GoogleFonts.notoSansTextTheme( // <--- Google Fontsを使用
+          Theme.of(context).textTheme,
+        ),
+      ),
       initialRoute: '/',
       routes: {
         '/': (context) => InputScreen(),
