@@ -6,7 +6,57 @@ import 'input_screen.dart'; // FormData と SelectedDateEntry を利用するた
 import '../widgets/responsive_layout.dart'; // 作成したレスポンシブレイアウトウィジェット
 
 class ConfirmScreen extends StatelessWidget {
-  final String _emailScriptUrl = 'https://fillmee.bambina.jp/api/paid_holiday_api/paid_holiday_api.php'; // ★★★ PHPスクリプトのURLを指定 ★★★
+  final String _emailScriptUrl = 'https://fillmee.bambina.jp/api/paid_holiday_api/paid_holiday_api.php'; // PHPスクリプトのURL
+
+  // メール本文と件名を生成するヘルパー関数
+  Map<String, String> _generateEmailContent(FormData data) {
+    final DateFormat formatter = DateFormat('yyyy/MM/dd');
+    final DateFormat timestampFormatter = DateFormat('yyyyMMddHHmmss');
+    final String submissionTimestamp = timestampFormatter.format(DateTime.now());
+
+    // 1. ID生成 (メールアドレスの先頭3文字 + タイムスタンプ)
+    String emailPrefix = data.email.length >= 3 ? data.email.substring(0, 3) : data.email;
+    emailPrefix = emailPrefix.toUpperCase(); // 大文字に統一
+    final String uniqueId = '$emailPrefix-$submissionTimestamp';
+
+    // 2. 件名生成
+    final String subject = '[有給休暇申請 ID: $uniqueId] ${data.name}様より申請がありました';
+
+    // 3. 本文生成
+    String entriesString = data.selectedEntries.map((entry) {
+      return "- 日付: ${formatter.format(entry.date)}, 期間: ${entry.duration.toStringAsFixed(1)}日";
+    }).join("\n");
+
+    String remarksContent = '';
+    if (data.remarks.isNotEmpty) {
+      remarksContent = "備考:\n${data.remarks}\n\n";
+    }
+
+    final String description = """
+      以下の内容で有給休暇の申請がありました。
+
+      -------------------------------------
+      申請ID: $uniqueId
+      申請者氏名: ${data.name}
+      配属先: ${data.department}
+      メールアドレス: ${data.email}
+      -------------------------------------
+
+      申請日詳細:
+      $entriesString
+
+      合計日数: ${data.totalDuration.toStringAsFixed(1)}日
+
+      ${remarksContent}-------------------------------------
+      申請日時: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now())}
+      """; // Email body ends here
+
+    return {
+      'reply_to': data.email,
+      'subject': subject,
+      'description': description.trim(), // 前後の余分な空白を削除
+    };
+  }
 
   Future<void> _submitData(BuildContext context, FormData data) async {
     showDialog(
@@ -30,24 +80,19 @@ class ConfirmScreen extends StatelessWidget {
     );
 
     try {
-      final List<Map<String, dynamic>> entriesForJson = data.selectedEntries.map((entry) {
-        return {
-          'date': DateFormat('yyyy-MM-dd').format(entry.date),
-          'duration': entry.duration,
-        };
-      }).toList();
+      // ★★★ 送信ボタン押下時にメール内容を生成 ★★★
+      final emailDetails = _generateEmailContent(data);
 
       final response = await http.post(
         Uri.parse(_emailScriptUrl),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        body: jsonEncode(<String, dynamic>{
-          'name': data.name,
-          'department': data.department,
-          'email': data.email,
-          'selected_entries': entriesForJson,
-          'total_duration': data.totalDuration,
+        // ★★★ PHPへ渡すJSONデータを変更 ★★★
+        body: jsonEncode(<String, String>{
+          'reply_to': emailDetails['reply_to']!,
+          'subject': emailDetails['subject']!,
+          'description': emailDetails['description']!,
         }),
       );
 
@@ -68,14 +113,14 @@ class ConfirmScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      Navigator.pop(context);
+      Navigator.pop(context); // ローディングダイアログを閉じる
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('エラーが発生しました: $e')),
       );
     }
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {bool isMultiline = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -83,7 +128,13 @@ class ConfirmScreen extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           SizedBox(width: 8),
-          Expanded(child: Text(value, style: TextStyle(fontSize: 16))),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 16),
+              softWrap: isMultiline, // trueの場合、複数行表示を適切に行う
+            )
+          ),
         ],
       ),
     );
@@ -128,6 +179,13 @@ class ConfirmScreen extends StatelessWidget {
             ),
           SizedBox(height: 10),
           _buildInfoRow('合計日数:', '${formData.totalDuration.toStringAsFixed(1)}日'),
+          
+          // ★★★ 備考欄の表示を追加 (空でない場合のみ) ★★★
+          if (formData.remarks.isNotEmpty) ...[
+            SizedBox(height: 10),
+            _buildInfoRow('備考:', formData.remarks, isMultiline: true),
+          ],
+
           SizedBox(height: 30),
           ElevatedButton(
             onPressed: () => _submitData(context, formData),
@@ -144,6 +202,8 @@ class ConfirmScreen extends StatelessWidget {
             },
             child: Text('入力画面に戻る'),
           ),
+           // ★ 前回の修正で追加したセーフティエリア用のSizedBox (ListViewの最後に配置)
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
         ],
       ),
     );
