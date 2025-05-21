@@ -6,23 +6,20 @@ import 'input_screen.dart'; // FormData と SelectedDateEntry を利用するた
 import '../widgets/responsive_layout.dart'; // 作成したレスポンシブレイアウトウィジェット
 
 class ConfirmScreen extends StatelessWidget {
-  final String _emailScriptUrl = 'https://fillmee.bambina.jp/api/paid_holiday_api/paid_holiday_api.php'; // PHPスクリプトのURL
+  final String _emailScriptUrl = 'https://fillmee.bambina.jp/api/paid_holiday_api/paid_holiday_api.php';
 
-  // メール本文と件名を生成するヘルパー関数
-  Map<String, String> _generateEmailContent(FormData data) {
+  // メール本文と件名、IDを生成するヘルパー関数
+  Map<String, String> _generateEmailContent(FormData data) { // 戻り値の型はそのまま Map<String, String> でOK
     final DateFormat formatter = DateFormat('yyyy/MM/dd');
     final DateFormat timestampFormatter = DateFormat('yyyyMMddHHmmss');
     final String submissionTimestamp = timestampFormatter.format(DateTime.now());
 
-    // 1. ID生成 (メールアドレスの先頭3文字 + タイムスタンプ)
     String emailPrefix = data.email.length >= 3 ? data.email.substring(0, 3) : data.email;
-    emailPrefix = emailPrefix.toUpperCase(); // 大文字に統一
-    final String uniqueId = '$emailPrefix-$submissionTimestamp';
+    emailPrefix = emailPrefix.toUpperCase();
+    final String uniqueId = '$emailPrefix-$submissionTimestamp'; // このIDをCompleteScreenに渡したい
 
-    // 2. 件名生成
     final String subject = '[有給休暇申請 ID: $uniqueId] ${data.name}様より申請がありました';
 
-    // 3. 本文生成
     String entriesString = data.selectedEntries.map((entry) {
       return "- 日付: ${formatter.format(entry.date)}, 期間: ${entry.duration.toStringAsFixed(1)}日";
     }).join("\n");
@@ -33,33 +30,35 @@ class ConfirmScreen extends StatelessWidget {
     }
 
     final String description = """
-      以下の内容で有給休暇の申請がありました。
+以下の内容で有給休暇の申請がありました。
 
-      -------------------------------------
-      申請ID: $uniqueId
-      申請者氏名: ${data.name}
-      配属先: ${data.department}
-      メールアドレス: ${data.email}
-      -------------------------------------
+-------------------------------------
+申請ID: $uniqueId
+申請者氏名: ${data.name}
+配属先: ${data.department}
+メールアドレス: ${data.email}
+-------------------------------------
 
-      申請日詳細:
-      $entriesString
+申請日詳細:
+$entriesString
 
-      合計日数: ${data.totalDuration.toStringAsFixed(1)}日
+合計日数: ${data.totalDuration.toStringAsFixed(1)}日
 
-      ${remarksContent}-------------------------------------
-      申請日時: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now())}
-      """; // Email body ends here
+${remarksContent}-------------------------------------
+申請日時: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now())}
+""";
 
     return {
       'reply_to': data.email,
       'subject': subject,
-      'description': description.trim(), // 前後の余分な空白を削除
+      'description': description.trim(),
+      'uniqueId': uniqueId, // ★★★ IDをマップに追加 ★★★
     };
   }
 
   Future<void> _submitData(BuildContext context, FormData data) async {
     showDialog(
+      // ... (ローディングダイアログ部分は変更なし)
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -80,7 +79,6 @@ class ConfirmScreen extends StatelessWidget {
     );
 
     try {
-      // ★★★ 送信ボタン押下時にメール内容を生成 ★★★
       final emailDetails = _generateEmailContent(data);
 
       final response = await http.post(
@@ -88,7 +86,6 @@ class ConfirmScreen extends StatelessWidget {
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        // ★★★ PHPへ渡すJSONデータを変更 ★★★
         body: jsonEncode(<String, String>{
           'reply_to': emailDetails['reply_to']!,
           'subject': emailDetails['subject']!,
@@ -101,7 +98,16 @@ class ConfirmScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         if (responseBody['status'] == 'success') {
-          Navigator.pushNamedAndRemoveUntil(context, '/complete', (route) => false);
+          // ★★★ CompleteScreenへ引数を渡す ★★★
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/complete',
+            (route) => false,
+            arguments: {
+              'uniqueId': emailDetails['uniqueId']!, // 生成したID
+              'applicantEmail': data.email,         // 申請者のメールアドレス
+            },
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('メール送信に失敗しました: ${responseBody['message'] ?? 'サーバーエラー'}')),
@@ -113,13 +119,13 @@ class ConfirmScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      Navigator.pop(context); // ローディングダイアログを閉じる
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('エラーが発生しました: $e')),
       );
     }
   }
-
+  // ... (_buildInfoRowとbuildメソッドは変更なし)
   Widget _buildInfoRow(String label, String value, {bool isMultiline = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -132,7 +138,7 @@ class ConfirmScreen extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(fontSize: 16),
-              softWrap: isMultiline, // trueの場合、複数行表示を適切に行う
+              softWrap: isMultiline, 
             )
           ),
         ],
@@ -180,7 +186,6 @@ class ConfirmScreen extends StatelessWidget {
           SizedBox(height: 10),
           _buildInfoRow('合計日数:', '${formData.totalDuration.toStringAsFixed(1)}日'),
           
-          // ★★★ 備考欄の表示を追加 (空でない場合のみ) ★★★
           if (formData.remarks.isNotEmpty) ...[
             SizedBox(height: 10),
             _buildInfoRow('備考:', formData.remarks, isMultiline: true),
@@ -202,7 +207,6 @@ class ConfirmScreen extends StatelessWidget {
             },
             child: Text('入力画面に戻る'),
           ),
-           // ★ 前回の修正で追加したセーフティエリア用のSizedBox (ListViewの最後に配置)
           SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
         ],
       ),
