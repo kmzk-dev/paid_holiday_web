@@ -1,3 +1,4 @@
+// input_screen.dart (変更後)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -26,6 +27,7 @@ class FormData {
   String email;
   List<SelectedDateEntry> selectedEntries;
   double totalDuration;
+  String remarks; // ★ 新しく追加: 備考欄のためのプロパティ
 
   FormData({
     this.name = '',
@@ -33,6 +35,7 @@ class FormData {
     this.email = '',
     List<SelectedDateEntry>? selectedEntries,
     this.totalDuration = 0.0,
+    this.remarks = '', // ★ コンストラクタにも追加（デフォルト値も設定）
   }) : this.selectedEntries = selectedEntries ?? [];
 }
 // --- データモデルクラスここまで ---
@@ -44,7 +47,7 @@ class InputScreen extends StatefulWidget {
 
 class _InputScreenState extends State<InputScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _formData = FormData();
+  final _formData = FormData(); // FormDataのインスタンス生成時に remarks も初期化される
   List<SelectedDateEntry> _selectedEntries = [];
 
   double get _calculatedTotalDuration {
@@ -124,16 +127,16 @@ class _InputScreenState extends State<InputScreen> {
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
-                    todayBuilder: (context, date, events) => Container(
-                      margin: const EdgeInsets.all(4.0),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.5),
-                        shape: BoxShape.circle,
+                    todayBuilder: (context, date, events) => Container( //
+                      margin: const EdgeInsets.all(4.0), //
+                      alignment: Alignment.center, //
+                      decoration: BoxDecoration( //
+                        color: null, //
+                        shape: BoxShape.circle, //
                       ),
-                      child: Text(
-                        date.day.toString(),
-                        style: TextStyle(color: Colors.black),
+                      child: Text( //
+                        date.day.toString(), //
+                        style: TextStyle(color: Colors.black), //
                       ),
                     ),
                   ),
@@ -242,7 +245,7 @@ class _InputScreenState extends State<InputScreen> {
                     )
                   : ListView.builder(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
+                      physics: NeverScrollableScrollPhysics(), //
                       itemCount: _selectedEntries.length,
                       itemBuilder: (context, index) {
                         final entry = _selectedEntries[index];
@@ -257,6 +260,11 @@ class _InputScreenState extends State<InputScreen> {
                                 Text(formatter.format(entry.date)),
                                 DropdownButton<double>(
                                   value: entry.duration,
+                                  dropdownColor: null, //
+                                  elevation: 0, //
+                                  underline: Container( //
+                                    height: 0, //
+                                  ),
                                   items: [
                                     DropdownMenuItem(child: Text('1.0日'), value: 1.0),
                                     DropdownMenuItem(child: Text('0.5日'), value: 0.5),
@@ -270,7 +278,7 @@ class _InputScreenState extends State<InputScreen> {
                                   },
                                 ),
                                 IconButton(
-                                  icon: Icon(Icons.delete_outline, color: Colors.red),
+                                  icon: Icon(Icons.clear), //
                                   onPressed: () => _removeDateEntry(entry),
                                 ),
                               ],
@@ -279,6 +287,21 @@ class _InputScreenState extends State<InputScreen> {
                         );
                       },
                     ),
+              SizedBox(height: 20), // ★ 備考欄の前に少しスペースを追加
+
+              // ★==== 新しい入力項目（備考欄） ====★
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: '備考（任意）',
+                  hintText: '特記事項があれば入力してください',
+                  border: OutlineInputBorder(), // 枠線をつけると入力エリアが分かりやすくなります
+                ),
+                keyboardType: TextInputType.multiline, // 改行を許可
+                maxLines: 3, // 表示される行数の目安（nullにすると入力に応じて高さが伸びます）
+                onSaved: (value) => _formData.remarks = value ?? '', // nullの場合は空文字を保存
+              ),
+              // ★==== ここまで ====★
+
               SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () {
@@ -302,6 +325,8 @@ class _InputScreenState extends State<InputScreen> {
                   textStyle: TextStyle(fontSize: 16)
                 ),
               ),
+              // ★==== セーフティエリアのための余白 ====★
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 30), // 下部のシステムパディング + 追加の余白
             ],
         ),
       ),
