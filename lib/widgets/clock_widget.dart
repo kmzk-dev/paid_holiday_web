@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // pubspec.yaml に intl パッケージを追加してください
 
 class ClockWidget extends StatefulWidget {
-  const ClockWidget({Key? key}) : super(key: key);
+  const ClockWidget({super.key});
 
   @override
   State<ClockWidget> createState() => _ClockWidgetState();

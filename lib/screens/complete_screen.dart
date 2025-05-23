@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/responsive_layout.dart'; // 作成したレスポンシブレイアウトウィジェット
 
 class CompleteScreen extends StatelessWidget {
+  const CompleteScreen({super.key});
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic>? args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -111,11 +112,11 @@ class CompleteScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false); //
               },
-              child: Text('入力画面に戻る'),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15.0), //
                 textStyle: TextStyle(fontSize: 16) //
               ),
+              child: Text('入力画面に戻る'),
             ),
             SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
           ],

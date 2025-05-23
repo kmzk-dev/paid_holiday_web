@@ -6,6 +6,7 @@ import 'input_screen.dart'; // FormData と SelectedDateEntry を利用するた
 import '../widgets/responsive_layout.dart'; // 作成したレスポンシブレイアウトウィジェット
 
 class ConfirmScreen extends StatelessWidget {
+  const ConfirmScreen({super.key});
   final String _emailScriptUrl = 'https://fillmee.bambina.jp/api/paid_holiday_api/paid_holiday_api.php';
 
   // メール本文と件名、IDを生成するヘルパー関数
@@ -44,7 +45,7 @@ $entriesString
 
 合計日数: ${data.totalDuration.toStringAsFixed(1)}日
 
-${remarksContent}-------------------------------------
+$remarksContent-------------------------------------
 申請日時: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now())}
 """;
 
@@ -80,7 +81,6 @@ ${remarksContent}-------------------------------------
 
     try {
       final emailDetails = _generateEmailContent(data);
-
       final response = await http.post(
         Uri.parse(_emailScriptUrl),
         headers: <String, String>{
@@ -92,7 +92,7 @@ ${remarksContent}-------------------------------------
           'description': emailDetails['description']!,
         }),
       );
-
+      // ignore:use_build_context_synchronously
       Navigator.pop(context); // ローディングダイアログを閉じる
 
       if (response.statusCode == 200) {
@@ -100,6 +100,7 @@ ${remarksContent}-------------------------------------
         if (responseBody['status'] == 'success') {
           // ★★★ CompleteScreenへ引数を渡す ★★★
           Navigator.pushNamedAndRemoveUntil(
+            // ignore:use_build_context_synchronously
             context,
             '/complete',
             (route) => false,
@@ -109,17 +110,21 @@ ${remarksContent}-------------------------------------
             },
           );
         } else {
+          // ignore:use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('メール送信に失敗しました: ${responseBody['message'] ?? 'サーバーエラー'}')),
           );
         }
       } else {
+        // ignore:use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('メール送信リクエストエラー: ${response.statusCode}, Body: ${response.body}')),
         );
       }
     } catch (e) {
+      // ignore:use_build_context_synchronously
       Navigator.pop(context);
+      // ignore:use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('エラーが発生しました: $e')),
       );
@@ -194,11 +199,11 @@ ${remarksContent}-------------------------------------
           SizedBox(height: 30),
           ElevatedButton(
             onPressed: () => _submitData(context, formData),
-            child: Text('投稿する'),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: 15.0),
               textStyle: TextStyle(fontSize: 16)
             ),
+            child: Text('投稿する'),
           ),
           SizedBox(height: 10),
           TextButton(

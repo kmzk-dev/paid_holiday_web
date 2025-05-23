@@ -16,6 +16,7 @@ Future<void> main() async { // ★ async に変更
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
       ],
       locale: const Locale('ja', 'JP'),
       theme: ThemeData(
-        textTheme: GoogleFonts.notoSansTextTheme( // <--- Google Fontsを使用
+        textTheme: GoogleFonts.sawarabiGothicTextTheme( // <--- Google Fontsを使用
           Theme.of(context).textTheme,
         ),
       ),
