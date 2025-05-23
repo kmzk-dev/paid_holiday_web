@@ -5,7 +5,7 @@ import 'clock_widget.dart'; // 作成した時計ウィジェットをインポ�
 class ResponsiveLayout extends StatelessWidget {
   final Widget child; // 各画面の主要コンテンツ
 
-  const ResponsiveLayout({Key? key, required this.child}) : super(key: key);
+  const ResponsiveLayout({super.key, required this.child});
 
   static const double desktopBreakpoint = 853.0; // 旧768.0タブレット横向きを想定したブレークポイント
   // static const double contentCardWidth = 450.0; // 右側コンテンツがExpandedになるため、この固定幅は不要になる場合があります。
@@ -26,12 +26,14 @@ class ResponsiveLayout extends StatelessWidget {
               // 左側: 時計表示エリア (画面横幅の40%)
               SizedBox(
                 width: clockColumnWidth,
-                child: Container(
+                child: 
+                //Container(
                   // color: Color(0xFFF5F5F5), // Figmaで見た背景色 (FSFSFS)
-                  child: Center(
+                  //child: 
+                  Center(
                     child: ClockWidget(),
                   ),
-                ),
+                //),
               ),
               // 右側: メインコンテンツをカード表示 (画面横幅の残り60%)
               Expanded(

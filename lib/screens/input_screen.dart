@@ -15,8 +15,8 @@ class SelectedDateEntry {
   // isSameDay との比較用
   bool isSameDate(DateTime otherDate) {
     return date.year == otherDate.year &&
-           date.month == otherDate.month &&
-           date.day == otherDate.day;
+          date.month == otherDate.month &&
+          date.day == otherDate.day;
   }
 }
 
@@ -36,16 +36,20 @@ class FormData {
     List<SelectedDateEntry>? selectedEntries,
     this.totalDuration = 0.0,
     this.remarks = '', // ★ コンストラクタにも追加（デフォルト値も設定）
-  }) : this.selectedEntries = selectedEntries ?? [];
+  })
+  //: this.selectedEntries = selectedEntries
+  : selectedEntries = selectedEntries
+  ?? [];
 }
 // --- データモデルクラスここまで ---
 
 class InputScreen extends StatefulWidget {
+  const InputScreen({super.key});
   @override
-  _InputScreenState createState() => _InputScreenState();
+  InputScreenState createState() => InputScreenState();
 }
 
-class _InputScreenState extends State<InputScreen> {
+class InputScreenState extends State<InputScreen> {
   final _formKey = GlobalKey<FormState>();
   final _formData = FormData(); // FormDataのインスタンス生成時に remarks も初期化される
   List<SelectedDateEntry> _selectedEntries = [];
@@ -79,6 +83,7 @@ class _InputScreenState extends State<InputScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: Text('日付を選択'),
+              // ignore: sized_box_for_whitespace
               content: Container(
                 width: double.maxFinite,
                 child: TableCalendar(
@@ -266,8 +271,8 @@ class _InputScreenState extends State<InputScreen> {
                                     height: 0, //
                                   ),
                                   items: [
-                                    DropdownMenuItem(child: Text('1.0日'), value: 1.0),
-                                    DropdownMenuItem(child: Text('0.5日'), value: 0.5),
+                                    DropdownMenuItem(value: 1.0,child: Text('1.0日')),
+                                    DropdownMenuItem(value: 0.5,child: Text('0.5日')),
                                   ],
                                   onChanged: (value) {
                                     if (value != null) {
@@ -319,11 +324,11 @@ class _InputScreenState extends State<InputScreen> {
                     Navigator.pushNamed(context, '/confirm', arguments: _formData);
                   }
                 },
-                child: Text('確認画面へ'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 15.0),
                   textStyle: TextStyle(fontSize: 16)
                 ),
+                child: Text('確認画面へ'),
               ),
               // ★==== セーフティエリアのための余白 ====★
               SizedBox(height: MediaQuery.of(context).padding.bottom + 30), // 下部のシステムパディング + 追加の余白
