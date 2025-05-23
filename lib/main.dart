@@ -6,6 +6,8 @@ import 'screens/input_screen.dart';
 import 'screens/confirm_screen.dart';
 import 'screens/complete_screen.dart';
 import 'package:google_fonts/google_fonts.dart'; // <--- google_fontsをインポート
+import 'package:paid_holiday_web/screens/verify_screen.dart'; // verify_screen.dart をインポート
+
 
 
 // main関数をasyncに変更し、initializeDateFormattingを呼び出す
@@ -35,8 +37,9 @@ class MyApp extends StatelessWidget {
           Theme.of(context).textTheme,
         ),
       ),
-      initialRoute: '/',
+      initialRoute: '/verify',
       routes: {
+        '/verify': (context) => const VerifyScreen(),
         '/': (context) => InputScreen(),
         '/confirm': (context) => ConfirmScreen(),
         '/complete': (context) => CompleteScreen(),

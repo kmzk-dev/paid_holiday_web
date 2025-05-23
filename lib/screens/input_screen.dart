@@ -1,33 +1,31 @@
-// input_screen.dart (変更後)
+// lib/screens/input_screen.dart (最終修正版)
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../widgets/responsive_layout.dart'; // 作成したレスポンシブレイアウトウィジェット
+import '../widgets/responsive_layout.dart';
 
-// --- データモデルクラス ---
-// 選択された日付と期間（日単位）を管理するクラス
+// --- データモデルクラス (変更なし) ---
 class SelectedDateEntry {
   DateTime date;
-  double duration; // 1.0 または 0.5
+  double duration;
 
   SelectedDateEntry({required this.date, this.duration = 1.0});
 
-  // isSameDay との比較用
   bool isSameDate(DateTime otherDate) {
     return date.year == otherDate.year &&
-          date.month == otherDate.month &&
-          date.day == otherDate.day;
+        date.month == otherDate.month &&
+        date.day == otherDate.day;
   }
 }
 
-// フォーム全体のデータを管理するクラス
 class FormData {
   String name;
   String department;
   String email;
   List<SelectedDateEntry> selectedEntries;
   double totalDuration;
-  String remarks; // ★ 新しく追加: 備考欄のためのプロパティ
+  String remarks;
 
   FormData({
     this.name = '',
@@ -35,11 +33,8 @@ class FormData {
     this.email = '',
     List<SelectedDateEntry>? selectedEntries,
     this.totalDuration = 0.0,
-    this.remarks = '', // ★ コンストラクタにも追加（デフォルト値も設定）
-  })
-  //: this.selectedEntries = selectedEntries
-  : selectedEntries = selectedEntries
-  ?? [];
+    this.remarks = '',
+  }) : selectedEntries = selectedEntries ?? [];
 }
 // --- データモデルクラスここまで ---
 
@@ -51,10 +46,45 @@ class InputScreen extends StatefulWidget {
 
 class InputScreenState extends State<InputScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _formData = FormData(); // FormDataのインスタンス生成時に remarks も初期化される
+  final _formData = FormData();
   List<SelectedDateEntry> _selectedEntries = [];
 
+  final _emailController = TextEditingController();
+
+  // ★★★ 変更箇所 ★★★
+  // didChangeDependencies全体を、より堅牢なロジックに置き換え
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // このメソッドは複数回呼ばれる可能性があるため、最初の1回だけ実行するようにする
+    // また、setStateを安全に呼び出すために一手間加える
+    
+    // 現在のフレームの描画が終わった直後に実行するスケジュールを組む
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Navigatorから渡された引数を取得
+      final verifiedEmail = ModalRoute.of(context)?.settings.arguments as String?;
+
+      // Eメールが渡されており、かつ現在の表示と異なる場合のみ更新
+      if (verifiedEmail != null && _emailController.text != verifiedEmail) {
+        
+        // setStateを呼び出して、フレームワークに再描画を依頼する
+        setState(() {
+          print('InputScreen: Eメールを受信しました -> $verifiedEmail'); // デバッグ用出力
+          _emailController.text = verifiedEmail;
+          _formData.email = verifiedEmail;
+        });
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
   double get _calculatedTotalDuration {
+    // (変更なし)
     if (_selectedEntries.isEmpty) {
       return 0.0;
     }
@@ -62,6 +92,7 @@ class InputScreenState extends State<InputScreen> {
   }
 
   Future<void> _showCalendarDialog() async {
+    // (変更なし)
     Set<DateTime> tempSelectedDatesInDialog =
         _selectedEntries.map((entry) => entry.date).toSet();
 
@@ -83,7 +114,6 @@ class InputScreenState extends State<InputScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: Text('日付を選択'),
-              // ignore: sized_box_for_whitespace
               content: Container(
                 width: double.maxFinite,
                 child: TableCalendar(
@@ -132,16 +162,16 @@ class InputScreenState extends State<InputScreen> {
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
-                    todayBuilder: (context, date, events) => Container( //
-                      margin: const EdgeInsets.all(4.0), //
-                      alignment: Alignment.center, //
-                      decoration: BoxDecoration( //
-                        color: null, //
-                        shape: BoxShape.circle, //
+                    todayBuilder: (context, date, events) => Container(
+                      margin: const EdgeInsets.all(4.0),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: null,
+                        shape: BoxShape.circle,
                       ),
-                      child: Text( //
-                        date.day.toString(), //
-                        style: TextStyle(color: Colors.black), //
+                      child: Text(
+                        date.day.toString(),
+                        style: TextStyle(color: Colors.black),
                       ),
                     ),
                   ),
@@ -174,9 +204,8 @@ class InputScreenState extends State<InputScreen> {
         for (var dateFromDialog in result) {
           var existingEntry = _selectedEntries.firstWhere(
               (entry) => entry.isSameDate(dateFromDialog),
-              orElse: () => SelectedDateEntry(
-                  date: dateFromDialog, duration: 1.0)
-          );
+              orElse: () =>
+                  SelectedDateEntry(date: dateFromDialog, duration: 1.0));
           newEntries.add(existingEntry);
         }
         _selectedEntries = newEntries;
@@ -193,152 +222,170 @@ class InputScreenState extends State<InputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // (buildメソッド自体には変更はありません)
     Widget mainContent = Padding(
       padding: const EdgeInsets.all(16.0),
       child: Form(
         key: _formKey,
         child: ListView(
-            children: <Widget>[
-              TextFormField(
-                decoration: InputDecoration(labelText: '氏名'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '氏名を入力してください';
-                  return null;
-                },
-                onSaved: (value) => _formData.name = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: '配属先'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '配属先を入力してください';
-                  return null;
-                },
-                onSaved: (value) => _formData.department = value!,
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'メールアドレス'),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'メールアドレスを入力してください';
-                  final emailRegex = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
-                  if (!emailRegex.hasMatch(value)) return '有効なメールアドレスを入力してください';
-                  return null;
-                },
-                onSaved: (value) => _formData.email = value!,
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            TextFormField(
+              decoration: InputDecoration(labelText: '氏名'),
+              validator: (value) {
+                if (value == null || value.isEmpty) return '氏名を入力してください';
+                return null;
+              },
+              onSaved: (value) => _formData.name = value!,
+            ),
+            TextFormField(
+              decoration: InputDecoration(labelText: '配属先'),
+              validator: (value) {
+                if (value == null || value.isEmpty) return '配属先を入力してください';
+                return null;
+              },
+              onSaved: (value) => _formData.department = value!,
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('日付:', style: TextStyle(fontSize: 16)),
-                  ElevatedButton(
-                    onPressed: _showCalendarDialog,
-                    child: Text('カレンダーから選択'),
+                  Text(
+                    'メールアドレス',
+                    style: TextStyle(
+                      color: Theme.of(context).hintColor,
+                      fontSize: 12,
+                    ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _emailController.text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(),
                 ],
               ),
-              SizedBox(height: 10),
-              if (_selectedEntries.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text('選択された日付一覧 (合計: ${_calculatedTotalDuration.toStringAsFixed(1)}日):', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('日付:', style: TextStyle(fontSize: 16)),
+                ElevatedButton(
+                  onPressed: _showCalendarDialog,
+                  child: Text('カレンダーから選択'),
                 ),
-              _selectedEntries.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text('日付が選択されていません'),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(), //
-                      itemCount: _selectedEntries.length,
-                      itemBuilder: (context, index) {
-                        final entry = _selectedEntries[index];
-                        final DateFormat formatter = DateFormat('yyyy/MM/dd');
-                        return Card(
-                          margin: EdgeInsets.symmetric(vertical: 4.0),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: <Widget>[
-                                Text(formatter.format(entry.date)),
-                                DropdownButton<double>(
-                                  value: entry.duration,
-                                  dropdownColor: null, //
-                                  elevation: 0, //
-                                  underline: Container( //
-                                    height: 0, //
-                                  ),
-                                  items: [
-                                    DropdownMenuItem(value: 1.0,child: Text('1.0日')),
-                                    DropdownMenuItem(value: 0.5,child: Text('0.5日')),
-                                  ],
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() {
-                                        entry.duration = value;
-                                      });
-                                    }
-                                  },
+              ],
+            ),
+            SizedBox(height: 10),
+            if (_selectedEntries.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                    '選択された日付一覧 (合計: ${_calculatedTotalDuration.toStringAsFixed(1)}日):',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            _selectedEntries.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text('日付が選択されていません'),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: _selectedEntries.length,
+                    itemBuilder: (context, index) {
+                      final entry = _selectedEntries[index];
+                      final DateFormat formatter = DateFormat('yyyy/MM/dd');
+                      return Card(
+                        margin: EdgeInsets.symmetric(vertical: 4.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              Text(formatter.format(entry.date)),
+                              DropdownButton<double>(
+                                value: entry.duration,
+                                dropdownColor: null,
+                                elevation: 0,
+                                underline: Container(
+                                  height: 0,
                                 ),
-                                IconButton(
-                                  icon: Icon(Icons.clear), //
-                                  onPressed: () => _removeDateEntry(entry),
-                                ),
-                              ],
-                            ),
+                                items: [
+                                  DropdownMenuItem(
+                                      value: 1.0, child: Text('1.0日')),
+                                  DropdownMenuItem(
+                                      value: 0.5, child: Text('0.5日')),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      entry.duration = value;
+                                    });
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.clear),
+                                onPressed: () => _removeDateEntry(entry),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-              SizedBox(height: 20), // ★ 備考欄の前に少しスペースを追加
-
-              // ★==== 新しい入力項目（備考欄） ====★
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: '備考（任意）',
-                  hintText: '特記事項があれば入力してください',
-                  border: OutlineInputBorder(), // 枠線をつけると入力エリアが分かりやすくなります
-                ),
-                keyboardType: TextInputType.multiline, // 改行を許可
-                maxLines: 3, // 表示される行数の目安（nullにすると入力に応じて高さが伸びます）
-                onSaved: (value) => _formData.remarks = value ?? '', // nullの場合は空文字を保存
-              ),
-              // ★==== ここまで ====★
-
-              SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    _formData.selectedEntries = List.from(_selectedEntries);
-                    _formData.totalDuration = _calculatedTotalDuration;
-
-                    if (_formData.selectedEntries.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('日付を1つ以上選択してください')),
+                        ),
                       );
-                      return;
-                    }
-                    Navigator.pushNamed(context, '/confirm', arguments: _formData);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15.0),
-                  textStyle: TextStyle(fontSize: 16)
-                ),
-                child: Text('確認画面へ'),
+                    },
+                  ),
+            SizedBox(height: 20),
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: '備考（任意）',
+                hintText: '特記事項があれば入力してください',
+                border: OutlineInputBorder(),
               ),
-              // ★==== セーフティエリアのための余白 ====★
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 30), // 下部のシステムパディング + 追加の余白
-            ],
+              keyboardType: TextInputType.multiline,
+              maxLines: 3,
+              onSaved: (value) => _formData.remarks = value ?? '',
+            ),
+            SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  _formData.selectedEntries = List.from(_selectedEntries);
+                  _formData.totalDuration = _calculatedTotalDuration;
+
+                  if (_formData.selectedEntries.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('日付を1つ以上選択してください')),
+                    );
+                    return;
+                  }
+                  Navigator.pushNamed(context, '/confirm',
+                      arguments: _formData);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  textStyle: TextStyle(fontSize: 16)),
+              child: Text('確認画面へ'),
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 30),
+          ],
         ),
       ),
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text('入力画面')),
+      appBar: AppBar(
+        title: Text('入力画面'),
+        automaticallyImplyLeading: false
+        ),
       body: ResponsiveLayout(child: mainContent),
     );
   }

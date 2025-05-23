@@ -1,6 +1,7 @@
 // complete_screen.dart (修正後、url_launcher関連を削除)
 import 'package:flutter/material.dart';
 import '../widgets/responsive_layout.dart'; // 作成したレスポンシブレイアウトウィジェット
+import 'package:web/web.dart' as web;
 
 class CompleteScreen extends StatelessWidget {
   const CompleteScreen({super.key});
@@ -110,7 +111,8 @@ class CompleteScreen extends StatelessWidget {
 
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false); //
+                // Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false); //
+                web.window.location.href = '/';
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15.0), //
